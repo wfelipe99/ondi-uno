@@ -1,7 +1,8 @@
 // @ts-nocheck
 import type { BoardProps } from "boardgame.io/react";
 import type { OndiUnoState } from "./Game";
-import { Box, Grid, Img, VStack, HStack, GridItem } from "@chakra-ui/react";
+import { Grid, Image, VStack, HStack, GridItem } from "@chakra-ui/react";
+import MotionImage from "./MotionImage";
 
 export default function OndiUnoBoard({
   ctx,
@@ -12,12 +13,18 @@ export default function OndiUnoBoard({
     const elements = [];
 
     G.players["0"].map((card, i) => {
-      let imgPath = "";
-      if (card.color) imgPath = `cards/${card.color}_${card.number}.png`;
-      else imgPath = `cards/wild_${card.wild}.png`;
+      let ImagePath = "";
+      if (card.color) ImagePath = `cards/${card.color}_${card.number}.png`;
+      else ImagePath = `cards/wild_${card.wild}.png`;
 
       return elements.push(
-        <Img key={i} src={process.env.PUBLIC_URL + imgPath} alt="Carta" />
+        <MotionImage
+          key={i}
+          whileHover={{ y: -100 }}
+          transition={{ duration: 0.4 }}
+          src={process.env.PUBLIC_URL + ImagePath}
+          alt="Carta"
+        />
       );
     });
 
@@ -39,7 +46,7 @@ export default function OndiUnoBoard({
 
     elements.push(
       [...Array(totalOfCards)].map((a, i) => (
-        <Img
+        <Image
           key={i}
           src={process.env.PUBLIC_URL + "cards/card_back.png"}
           transform={`rotate(${transformRotateValue(seat)}deg)`}
@@ -85,7 +92,7 @@ export default function OndiUnoBoard({
 
       {/* Deck */}
       <GridItem placeSelf="center" area="2 / 3 / 5 / 4">
-        <Img
+        <Image
           src={process.env.PUBLIC_URL + "cards/card_back.png"}
           alt="BackCard"
         />
@@ -93,7 +100,7 @@ export default function OndiUnoBoard({
 
       {/* Discards */}
       <GridItem placeSelf="center" area="2 / 4 / 5 / 5">
-        <Img
+        <Image
           src={process.env.PUBLIC_URL + "cards/card_back.png"}
           alt="BackCard"
         />
