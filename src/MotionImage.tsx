@@ -1,8 +1,6 @@
-import { chakra } from "@chakra-ui/react";
-import { motion, isValidMotionProp } from "framer-motion";
+import { ImageProps, Image } from "@chakra-ui/react";
+import { motion } from "framer-motion";
 
-const MotionImage = chakra(motion.img, {
-  shouldForwardProp: () => true,
-});
+const MotionImage = motion<ImageProps>(Image);
 
 export default MotionImage;
