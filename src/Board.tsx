@@ -26,15 +26,23 @@ export default function OndiUnoBoard({
 
         const degree = number * positiveOrNegative;
 
-        const discardPlaceOffsets =
+        const discardPlaceOffset =
           discardPlaceRef.current.getBoundingClientRect();
-        const discardedCardOffsets =
+        const discardedCardOffset =
           cardsRef.current[cardId].getBoundingClientRect();
 
+        // Hover effect is only in cards of this player
+        const onHoverCompensationLength =
+          discardThisCard === `card-${cardId}` ? 0 : upLengthOnHover;
+
         return {
-          x: discardPlaceOffsets.x - discardedCardOffsets.x,
+          x: discardPlaceOffset.x - discardedCardOffset.x,
+          // The mathematical logic for distance for y-axis is inverted from x-axis.
+          // From top to bottom, it's positive. From bottom to top is negative.
           y:
-            -(discardedCardOffsets.y - discardPlaceOffsets.y) - upLengthOnHover,
+            discardPlaceOffset.y -
+            discardedCardOffset.y -
+            onHoverCompensationLength,
           rotate: degree,
           transition: { duration: 0.6 },
         };
@@ -77,7 +85,6 @@ export default function OndiUnoBoard({
               `card-${card.color ?? card.wild}-${card.number ?? "wild"}-${i}` &&
             "discard"
           }
-          boxSizing="border-box"
           src={process.env.PUBLIC_URL + ImagePath}
           ref={(el) => (cardsRef.current[i] = el)}
           onClick={(e) => discardCard(e)}
@@ -105,7 +112,9 @@ export default function OndiUnoBoard({
 
     elements.push(
       [...Array(totalOfCards)].map((a, i) => (
-        <Image
+        <MotionImage
+          variants={cardAnimations(i)}
+          animate={discardThisCard === `card-${i + seat * 10}` && "discard"}
           key={i}
           ref={(el) => (cardsRef.current[i + seat * 10] = el)}
           id={`card-${i + seat * 10}`}
