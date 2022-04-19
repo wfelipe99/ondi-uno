@@ -1,132 +1,148 @@
 // @ts-nocheck
 // TODO: remove @ts-nocheck
-import type { BoardProps } from "boardgame.io/react";
-import type { OndiUnoState } from "./Game";
-import { Grid, Image, VStack, HStack, GridItem, Box } from "@chakra-ui/react";
-import MotionImage from "./MotionImage";
-import { useRef, useState } from "react";
+import type { BoardProps } from 'boardgame.io/react'
+import type { OndiUnoState, UnoDeck } from './Game'
+import { Grid, Image, VStack, HStack, GridItem, Box, Flex } from '@chakra-ui/react'
+import MotionImage from './MotionImage'
+import { useRef, useState } from 'react'
 
-export default function OndiUnoBoard({
-  ctx,
-  G,
-  moves,
-}: BoardProps<OndiUnoState>) {
-  const [discardThisCard, setDiscardThisCard] = useState("");
-  const [discardedCards, setDiscardedCards] = useState([]);
-  const discardPlaceRef = useRef(null);
-  const cardsRef = useRef([]);
+export default function OndiUnoBoard({ ctx, G, moves }: BoardProps<OndiUnoState>) {
+  const [cardsOfThisPlayer, setCardsOfThisPlayer] = useState(G.players[Object.keys(G.players)[0]])
+  const [discardThisCard, setDiscardThisCard] = useState('')
+  const discardPlaceRef = useRef(null)
+  const cardsRef = useRef([])
+  const [cardToAnimate, setCardToAnimate] = useState<UnoDeck[]>([])
 
   const cardAnimations = (cardId: number) => {
-    const upLengthOnHover = 50;
+    const upLengthOnHover = 50
 
     return {
       discard: (i) => {
-        const number = Math.floor(Math.random() * 45) + 1;
-        const positiveOrNegative = Math.random() < 0.5 ? 1 : -1;
+        const number = Math.floor(Math.random() * 45) + 1
+        const positiveOrNegative = Math.random() < 0.5 ? 1 : -1
 
-        const degree = number * positiveOrNegative;
+        const degree = number * positiveOrNegative
 
-        const discardPlaceOffset =
-          discardPlaceRef.current.getBoundingClientRect();
-        const discardedCardOffset =
-          cardsRef.current[cardId].getBoundingClientRect();
-
-        // Hover effect is only in cards of this player
-        const onHoverCompensationLength =
-          discardThisCard === `card-${cardId}` ? 0 : upLengthOnHover;
+        const discardPlaceOffset = discardPlaceRef.current.getBoundingClientRect()
+        const discardedCardOffset = cardsRef.current[cardId].getBoundingClientRect()
 
         return {
           x: discardPlaceOffset.x - discardedCardOffset.x,
           // The mathematical logic for distance for y-axis is inverted from x-axis.
           // From top to bottom, it's positive. From bottom to top is negative.
-          y:
-            discardPlaceOffset.y -
-            discardedCardOffset.y -
-            onHoverCompensationLength,
+          y: discardPlaceOffset.y - discardedCardOffset.y,
           rotate: degree,
           transition: { duration: 0.6 },
-        };
+        }
       },
       hover: {
         y: -upLengthOnHover,
         transition: { duration: 0.25 },
       },
-    };
-  };
+    }
+  }
 
   const discardCard = (e) => {
-    if (discardedCards.includes(e.target.id)) return false;
+    const id = e.target.id
+    const type = e.target.dataset.type
+    const number = e.target.dataset.number
+    const card: UnoDeck = { id, type, number }
 
-    e.target.style.zIndex = discardedCards.length;
-    setDiscardThisCard(e.target.id);
-    setDiscardedCards((oldArray) => [...oldArray, e.target.id]);
-  };
+    if (G.discardedCards.cards.includes(card)) return false
+    if (ctx.currentPlayer !== Object.keys(G.players)[0]) return false
+
+    e.target.style.zIndex = G.discardedCards.total
+    setDiscardThisCard(`shallow-${e.target.id}`)
+    console.log(discardThisCard)
+    moves.discardCard(card)
+  }
 
   const renderCardsOfThisPlayer = () => {
-    const elements = [];
+    const elements = []
+    const thisPlayer = G.players[Object.keys(G.players)[0]]
 
-    G.players["0"].map((card, i) => {
-      let ImagePath = "";
-      if (card.color) ImagePath = `cards/${card.color}_${card.number}.png`;
-      else ImagePath = `cards/wild_${card.wild}.png`;
+    thisPlayer.forEach((card, i) => {
+      let ImagePath = ''
+      if (card.number) ImagePath = `cards/${card.type}_${card.number}.png`
+      else ImagePath = `cards/wild_${card.type}.png`
+
+      elements.push(
+        <MotionImage
+          id={card.id}
+          data-type={card.type}
+          data-number={card.number}
+          variants={cardAnimations(i)}
+          custom={card.id}
+          whileHover={
+            !G.discardedCards.cards.includes({ type: card.type, number: card.number }) && 'hover'
+          }
+          src={process.env.PUBLIC_URL + ImagePath}
+          onClick={(e) => discardCard(e)}
+          alt="Carta"
+          key={card.id}
+        />
+      )
+    })
+
+    return elements
+  }
+
+  const shallowRenderCardsOfThisPlayer = () => {
+    const elements = []
+
+    cardsOfThisPlayer.map((card, i) => {
+      let ImagePath = ''
+      if (card.number) ImagePath = `cards/${card.type}_${card.number}.png`
+      else ImagePath = `cards/wild_${card.type}.png`
 
       return elements.push(
         <MotionImage
-          id={`card-${card.color ?? card.wild}-${card.number ?? "wild"}-${i}`}
-          variants={cardAnimations(i)}
-          custom={i}
-          whileHover={
-            !discardedCards.includes(
-              `card-${card.color ?? card.wild}-${card.number ?? "wild"}-${i}`
-            ) && "hover"
-          }
-          animate={
-            discardThisCard ===
-              `card-${card.color ?? card.wild}-${card.number ?? "wild"}-${i}` &&
-            "discard"
-          }
+          id={`shallow-${card.id}`}
+          // display={discardThisCard === `shallow-${card.id}` ? 'block' : 'none'}
+          variants={cardAnimations(card.id)}
+          custom={card.id}
+          animate={discardThisCard === `shallow-${card.id}` && 'discard'}
           src={process.env.PUBLIC_URL + ImagePath}
-          ref={(el) => (cardsRef.current[i] = el)}
-          onClick={(e) => discardCard(e)}
+          ref={(el) => (cardsRef.current[card.id] = el)}
           alt="Carta"
-          key={i}
+          key={card.id}
         />
-      );
-    });
+      )
+    })
 
-    return elements;
-  };
+    return elements
+  }
 
   const renderCardsOfOthersPlayers = (seat: number) => {
-    if (!G.publicPlayersInfo[seat]) return null;
+    if (!G.publicPlayersInfo[seat]) return null
 
-    const totalOfCards = Object.values(G.publicPlayersInfo[seat])[1];
+    const totalOfCards = Object.values(G.publicPlayersInfo[seat])[1]
 
     const transformRotateValue = (seat: number) => {
-      if (seat === 1) return 90;
-      else if (seat === 2) return 180;
-      else return -90;
-    };
+      if (seat === 1) return 90
+      else if (seat === 2) return 180
+      else return -90
+    }
 
-    const elements = [];
+    const elements = []
 
     elements.push(
       [...Array(totalOfCards)].map((a, i) => (
         <MotionImage
           variants={cardAnimations(i)}
-          animate={discardThisCard === `card-${i + seat * 10}` && "discard"}
+          animate={discardThisCard === `card-${i + seat * 10}` && 'discard'}
           key={i}
           ref={(el) => (cardsRef.current[i + seat * 10] = el)}
           id={`card-${i + seat * 10}`}
-          src={process.env.PUBLIC_URL + "cards/card_back.png"}
+          src={process.env.PUBLIC_URL + 'cards/card_back.png'}
           transform={`rotate(${transformRotateValue(seat)}deg)`}
           alt="BackCard"
         />
       ))
-    );
+    )
 
-    return elements;
-  };
+    return elements
+  }
 
   return (
     <Grid
@@ -149,10 +165,13 @@ export default function OndiUnoBoard({
       </GridItem>
 
       {/* Seat 0 - The player */}
-      <GridItem area="5 / 1 / 6 / 7">
-        <HStack mb="4" spacing="-8" justify="center">
-          {renderCardsOfThisPlayer()}
-        </HStack>
+      <GridItem area="5 / 1 / 6 / 7" placeSelf="center">
+        <Flex position="relative" mb="4">
+          <Flex position="absolute" top="0" left="0">
+            {renderCardsOfThisPlayer()}
+          </Flex>
+          <Flex>{shallowRenderCardsOfThisPlayer()}</Flex>
+        </Flex>
       </GridItem>
 
       {/* Seat 3 */}
@@ -162,10 +181,7 @@ export default function OndiUnoBoard({
 
       {/* Deck */}
       <GridItem placeSelf="center" area="2 / 3 / 5 / 4">
-        <Image
-          src={process.env.PUBLIC_URL + "cards/card_back.png"}
-          alt="BackCard"
-        />
+        <Image src={process.env.PUBLIC_URL + 'cards/card_back.png'} alt="BackCard" />
       </GridItem>
 
       {/* Discards */}
@@ -173,5 +189,5 @@ export default function OndiUnoBoard({
         <Box minW="130" minH="182" ref={discardPlaceRef}></Box>
       </GridItem>
     </Grid>
-  );
+  )
 }

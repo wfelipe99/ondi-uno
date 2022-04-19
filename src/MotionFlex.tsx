@@ -1,6 +1,6 @@
-import { Flex, FlexProps } from "@chakra-ui/react";
-import { motion } from "framer-motion";
+import { Flex, FlexProps } from '@chakra-ui/react'
+import { motion } from 'framer-motion'
 
-const MotionFlex = motion<FlexProps>(Flex);
+const MotionFlex = motion<FlexProps>(Flex)
 
-export default MotionFlex;
+export default MotionFlex
