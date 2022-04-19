@@ -166,12 +166,7 @@ export default function OndiUnoBoard({ ctx, G, moves }: BoardProps<OndiUnoState>
 
       {/* Seat 0 - The player */}
       <GridItem area="5 / 1 / 6 / 7" placeSelf="center">
-        <Flex position="relative" mb="4">
-          <Flex position="absolute" top="0" left="0">
-            {renderCardsOfThisPlayer()}
-          </Flex>
-          <Flex>{shallowRenderCardsOfThisPlayer()}</Flex>
-        </Flex>
+        <HStack spacing="-8">{renderCardsOfThisPlayer()}</HStack>
       </GridItem>
 
       {/* Seat 3 */}
