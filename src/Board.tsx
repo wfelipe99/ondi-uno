@@ -64,7 +64,6 @@ export default function OndiUnoBoard({
     moves.discardCard(card)
 
     if (card.type === 'pick_four' || card.type === 'color_changer') {
-      console.log('Escolha uma cor')
       setPickColor(!pickColor)
       events.setStage('chooseColor')
     }

@@ -262,6 +262,7 @@ export interface OndiUnoState {
     total: number
     cards: UnoDeck[]
   }
+  startCard: UnoDeck
   nextSpecialColor: SpecialColors
   cardAccumulatorForNextPlayer: number
 }
@@ -297,6 +298,7 @@ const drawCard: Move<OndiUnoState> = (G, ctx) => {
     return
   }
 
+  console.log('ending turn')
   ctx.events?.endTurn()
 }
 
@@ -365,7 +367,6 @@ const discardCard: Move<OndiUnoState> = (G, ctx, card: UnoDeck) => {
   G.publicPlayersInfo[ctx.currentPlayer].totalOfCards--
 
   if (card.type === 'pick_four' || card.type === 'color_changer') {
-    console.log('Escolha uma cor')
     ctx.events?.setStage('chooseColor')
     return
   }
@@ -423,9 +424,15 @@ export const OndiUno: Game<OndiUnoState> = {
 
     const startCard: UnoDeck = deck.draw()
     let cardAccumulatorForNextPlayer = 0
+    const colors = ['blue', 'green', 'red', 'yellow']
+    let nextSpecialColor: SpecialColors = null
 
-    if (startCard.type === 'pick_four') cardAccumulatorForNextPlayer += 4
-    if (startCard.number === 'picker') cardAccumulatorForNextPlayer += 2
+    if (startCard.type === 'pick_four') {
+      cardAccumulatorForNextPlayer += 4
+      nextSpecialColor = colors[Math.floor(Math.random() * colors.length)] as SpecialColors
+    } else if (startCard.type === 'color_changer')
+      nextSpecialColor = colors[Math.floor(Math.random() * colors.length)] as SpecialColors
+    else if (startCard.number === 'picker') cardAccumulatorForNextPlayer += 2
 
     // Precisa ser depois de distribuir as cartas
     const deckInfo: Deck = {
@@ -454,7 +461,8 @@ export const OndiUno: Game<OndiUnoState> = {
         total: 1,
         cards: [startCard],
       },
-      nextSpecialColor: null,
+      startCard,
+      nextSpecialColor,
       cardAccumulatorForNextPlayer,
     }
   },
@@ -463,6 +471,8 @@ export const OndiUno: Game<OndiUnoState> = {
     minMoves: 1,
     maxMoves: 2,
     onBegin: (G, ctx) => {
+      if (G.startCard.number === 'skip' && ctx.turn === 1) ctx.events?.pass()
+
       const validCardsToDiscard = G.players[ctx.currentPlayer].filter((card) => {
         const lastDiscardedCard = G.discardedCards.cards.at(-1)
 
@@ -479,23 +489,16 @@ export const OndiUno: Game<OndiUnoState> = {
         return false
       })
 
-      console.log(validCardsToDiscard)
-
       if (validCardsToDiscard.length !== 0) {
-        console.log(`turn: ${ctx.turn}`)
-        console.log(`currentPlayer: ${ctx.currentPlayer}`)
-        console.log(`Há cartas válidas para o player ${ctx.currentPlayer}, próxima fase discard`)
         ctx.events?.setActivePlayers({ currentPlayer: 'discard' })
         return G
       }
 
       if (G.cardAccumulatorForNextPlayer > 0) {
-        console.log('Puxa esse leque')
         drawCards(G, ctx, G.cardAccumulatorForNextPlayer)
         ctx.events?.pass()
       }
 
-      console.log(`Não há cartas válidas para o player ${ctx.currentPlayer}, fase de draw`)
       ctx.events?.setActivePlayers({ currentPlayer: 'draw' })
       return G
     },
@@ -521,6 +524,7 @@ export const OndiUno: Game<OndiUnoState> = {
   maxPlayers: 4,
   // TODO: I need this, but I don't know how to manipulate secret state in moves
   // playerView: PlayerView.STRIP_SECRETS,
+  endIf: (G, ctx) => G.players[ctx.currentPlayer].length === 0,
   moves: {
     drawCard: {
       move: drawCard,
