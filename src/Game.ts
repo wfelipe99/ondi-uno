@@ -1,5 +1,5 @@
 import type { Game, Move } from 'boardgame.io'
-import { PlayerView } from 'boardgame.io/core'
+import { INVALID_MOVE, PlayerView } from 'boardgame.io/core'
 const Shuffle = require('shuffle')
 
 export type UnoDeck = {
@@ -122,6 +122,8 @@ const uno: UnoDeck[] = [
   { id: '108', type: 'color_changer', number: undefined },
 ]
 
+type SpecialColors = 'blue' | 'green' | 'red' | 'yellow' | null
+
 type Deck = {
   total: number
   availableCards: UnoDeck[]
@@ -148,13 +150,31 @@ export interface OndiUnoState {
     total: number
     cards: UnoDeck[]
   }
+  nextSpecialColor: SpecialColors
 }
 
 const drawCard: Move<OndiUnoState> = (G, ctx) => {
+  // @ts-ignore
+  // Pure function: https://javascript.plainenglish.io/how-to-avoid-side-effects-using-pure-functions-in-javascript-366acaafb60c
+  const newAvailableCards = [].concat(G.secret.deck.availableCards)
+  const card = newAvailableCards.pop() as unknown as UnoDeck
+
   G.secret.deck.total--
+  G.secret.deck.availableCards = newAvailableCards
+  G.players[ctx.currentPlayer].push(card)
 }
 
 const discardCard: Move<OndiUnoState> = (G, ctx, card: UnoDeck) => {
+  const lastDiscardedCard = G.discardedCards.cards.at(-1)
+
+  if (
+    card.type !== lastDiscardedCard?.type &&
+    card.number !== lastDiscardedCard?.number &&
+    card.type !== 'pick_four' &&
+    card.type !== 'color_changer'
+  )
+    return INVALID_MOVE
+
   let deleteCount = 0
   const newCardsOfThisPlayer = G.players[ctx.currentPlayer].filter((item) => {
     // I need this because I can have repeated cards and I must delete only
@@ -172,6 +192,19 @@ const discardCard: Move<OndiUnoState> = (G, ctx, card: UnoDeck) => {
   G.discardedCards.total++
   G.discardedCards.cards.push(card)
   G.publicPlayersInfo[ctx.currentPlayer].totalOfCards--
+
+  if (card.type === 'pick_four' || card.type === 'color_changer') {
+    console.log('Escolha uma cor')
+    ctx.events?.setStage('chooseColor')
+    return
+  }
+
+  ctx.events?.endTurn()
+}
+
+const chooseColor: Move<OndiUnoState> = (G, ctx, color: SpecialColors) => {
+  G.nextSpecialColor = color
+  // ctx.events?.endTurn()
 }
 
 export const OndiUno: Game<OndiUnoState> = {
@@ -217,6 +250,8 @@ export const OndiUno: Game<OndiUnoState> = {
       privatePlayersInfo['3'] = hand4
     }
 
+    const startCard: UnoDeck = deck.draw()
+
     // Precisa ser depois de distribuir as cartas
     const deckInfo: Deck = {
       total: deck.length,
@@ -241,21 +276,64 @@ export const OndiUno: Game<OndiUnoState> = {
       players: privatePlayersInfo,
       publicPlayersInfo,
       discardedCards: {
-        total: 0,
-        cards: [],
+        total: 1,
+        cards: [startCard],
       },
+      nextSpecialColor: null,
     }
   },
 
   turn: {
     minMoves: 1,
-    maxMoves: 1,
+    maxMoves: 2,
+    onBegin: (G, ctx) => {
+      const validCardsToDiscard = G.players[ctx.currentPlayer].filter((card) => {
+        const lastDiscardedCard = G.discardedCards.cards.at(-1)
+
+        if (card.type === 'pick_four' || card.type === 'color_changer') return true
+        if (card.type === lastDiscardedCard?.type || card.number === lastDiscardedCard?.number)
+          return true
+
+        return false
+      })
+
+      console.log(validCardsToDiscard)
+
+      if (validCardsToDiscard.length !== 0) {
+        console.log(`turn: ${ctx.turn}`)
+        console.log(`currentPlayer: ${ctx.currentPlayer}`)
+        console.log(`Há cartas válidas para o player ${ctx.currentPlayer}, próxima fase discard`)
+        ctx.events?.setActivePlayers({ currentPlayer: 'discard' })
+        return G
+      }
+
+      console.log(`Não há cartas válidas para o player ${ctx.currentPlayer}, fase de draw`)
+      ctx.events?.setActivePlayers({ currentPlayer: 'draw' })
+      return G
+    },
+    stages: {
+      draw: {
+        moves: { drawCard },
+      },
+      discard: {
+        moves: { discardCard },
+      },
+      chooseColor: {
+        moves: { chooseColor },
+      },
+    },
   },
+
   minPlayers: 2,
   maxPlayers: 4,
-  playerView: PlayerView.STRIP_SECRETS,
+  // TODO: I need this, but I don't know how to manipulate secret state in moves
+  // playerView: PlayerView.STRIP_SECRETS,
   moves: {
-    drawCard,
+    drawCard: {
+      move: drawCard,
+      client: false,
+    },
     discardCard,
+    chooseColor,
   },
 }

@@ -2,16 +2,23 @@
 // TODO: remove @ts-nocheck
 import type { BoardProps } from 'boardgame.io/react'
 import type { OndiUnoState, UnoDeck } from './Game'
-import { Grid, Image, VStack, HStack, GridItem, Box } from '@chakra-ui/react'
+import { Grid, Image, VStack, HStack, GridItem, Box, Text } from '@chakra-ui/react'
 import MotionImage from './MotionImage'
 import { useRef, useState } from 'react'
 
-export default function OndiUnoBoard({ ctx, G, moves, playerID }: BoardProps<OndiUnoState>) {
+export default function OndiUnoBoard({
+  ctx,
+  G,
+  moves,
+  playerID,
+  events,
+}: BoardProps<OndiUnoState>) {
   //const [cardsOfThisPlayer, setCardsOfThisPlayer] = useState(G.players[Object.keys(G.players)[0]])
   const [discardThisCard, setDiscardThisCard] = useState('')
   const discardPlaceRef = useRef(null)
   const cardsRef = useRef([])
   //const [cardToAnimate, setCardToAnimate] = useState<UnoDeck[]>([])
+  const [pickColor, setPickColor] = useState(false)
 
   const cardAnimations = (cardId: number) => {
     const upLengthOnHover = 50
@@ -53,7 +60,14 @@ export default function OndiUnoBoard({ ctx, G, moves, playerID }: BoardProps<Ond
 
     // e.target.style.zIndex = G.discardedCards.total
     setDiscardThisCard(`shallow-${e.target.id}`)
+
     moves.discardCard(card)
+
+    if (card.type === 'pick_four' || card.type === 'color_changer') {
+      console.log('Escolha uma cor')
+      setPickColor(!pickColor)
+      events.setStage('chooseColor')
+    }
   }
 
   const renderCardsOfThisPlayer = () => {
@@ -132,8 +146,6 @@ export default function OndiUnoBoard({ ctx, G, moves, playerID }: BoardProps<Ond
     }
 
     const totalOfCards = G.publicPlayersInfo[orderOfPlayerIDToRenderInTable[seat - 1]].totalOfCards
-    console.log(`playerID: ${playerID}`)
-    console.log(G.publicPlayersInfo[orderOfPlayerIDToRenderInTable[seat - 1]].name)
 
     const transformRotateValue = (seat: number) => {
       if (seat === 1) return 90
@@ -187,7 +199,11 @@ export default function OndiUnoBoard({ ctx, G, moves, playerID }: BoardProps<Ond
 
       {/* Deck */}
       <GridItem placeSelf="center" area="2 / 3 / 5 / 4">
-        <Image src={process.env.PUBLIC_URL + 'cards/card_back.png'} alt="BackCard" />
+        <Image
+          src={process.env.PUBLIC_URL + 'cards/card_back.png'}
+          alt="BackCard"
+          onClick={() => moves.drawCard()}
+        />
       </GridItem>
 
       {/* Discards */}
@@ -197,15 +213,58 @@ export default function OndiUnoBoard({ ctx, G, moves, playerID }: BoardProps<Ond
             <Image
               src={
                 process.env.PUBLIC_URL +
-                `cards/${G.discardedCards.cards[G.discardedCards.cards.length - 1].type}${
-                  G.discardedCards.cards[G.discardedCards.cards.length - 1].number
-                    ? `_${G.discardedCards.cards[G.discardedCards.cards.length - 1].number}`
+                `cards/${G.discardedCards.cards.at(-1).type}${
+                  G.discardedCards.cards.at(-1).number
+                    ? `_${G.discardedCards.cards.at(-1).number}`
                     : ''
                 }.png`
               }
             />
           ) : null}
         </Box>
+        {pickColor && (
+          <Box>
+            <Text color="white">Escolha uma cor:</Text>
+            <HStack>
+              <Box
+                w="10"
+                h="10"
+                bgColor="blue"
+                onClick={() => {
+                  setPickColor(!pickColor)
+                  moves.chooseColor('blue')
+                }}
+              />
+              <Box
+                w="10"
+                h="10"
+                bgColor="green"
+                onClick={() => {
+                  setPickColor(!pickColor)
+                  moves.chooseColor('green')
+                }}
+              />
+              <Box
+                w="10"
+                h="10"
+                bgColor="red"
+                onClick={() => {
+                  setPickColor(!pickColor)
+                  moves.chooseColor('red')
+                }}
+              />
+              <Box
+                w="10"
+                h="10"
+                bgColor="yellow"
+                onClick={() => {
+                  setPickColor(!pickColor)
+                  moves.chooseColor('yellow')
+                }}
+              />
+            </HStack>
+          </Box>
+        )}
       </GridItem>
     </Grid>
   )
