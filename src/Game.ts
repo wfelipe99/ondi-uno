@@ -499,6 +499,11 @@ export const OndiUno: Game<OndiUnoState> = {
       ctx.events?.setActivePlayers({ currentPlayer: 'draw' })
       return G
     },
+    onMove: (G, ctx) => {
+      const lastDiscardedCard = G.discardedCards.cards.at(-1)
+
+      if (lastDiscardedCard?.number === 'skip') ctx.events?.pass()
+    },
     stages: {
       draw: {
         moves: { drawCard },
