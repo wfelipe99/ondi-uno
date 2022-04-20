@@ -14,7 +14,7 @@ export default function OndiUnoBoard({
   events,
 }: BoardProps<OndiUnoState>) {
   //const [cardsOfThisPlayer, setCardsOfThisPlayer] = useState(G.players[Object.keys(G.players)[0]])
-  const [discardThisCard, setDiscardThisCard] = useState('')
+  const [discardThisCard, setDiscardThisCard] = useState({})
   const discardPlaceRef = useRef(null)
   const cardsRef = useRef([])
   //const [cardToAnimate, setCardToAnimate] = useState<UnoDeck[]>([])
@@ -59,7 +59,7 @@ export default function OndiUnoBoard({
     if (ctx.currentPlayer !== playerID) return false
 
     // e.target.style.zIndex = G.discardedCards.total
-    setDiscardThisCard(`shallow-${e.target.id}`)
+    setDiscardThisCard(card)
 
     moves.discardCard(card)
 
@@ -225,46 +225,52 @@ export default function OndiUnoBoard({
         {pickColor && (
           <Box>
             <Text color="white">Escolha uma cor:</Text>
-            <HStack>
-              <Box
-                w="10"
-                h="10"
-                bgColor="blue"
-                onClick={() => {
-                  setPickColor(!pickColor)
-                  moves.chooseColor('blue')
-                }}
-              />
-              <Box
-                w="10"
-                h="10"
-                bgColor="green"
-                onClick={() => {
-                  setPickColor(!pickColor)
-                  moves.chooseColor('green')
-                }}
-              />
-              <Box
-                w="10"
-                h="10"
-                bgColor="red"
-                onClick={() => {
-                  setPickColor(!pickColor)
-                  moves.chooseColor('red')
-                }}
-              />
-              <Box
-                w="10"
-                h="10"
-                bgColor="yellow"
-                onClick={() => {
-                  setPickColor(!pickColor)
-                  moves.chooseColor('yellow')
-                }}
-              />
-            </HStack>
           </Box>
         )}
+        <Box mt="2" ml="2">
+          <HStack>
+            <Box
+              w="10"
+              h="10"
+              display={pickColor ? 'block' : G.nextSpecialColor === 'blue' ? 'block' : 'none'}
+              bgColor="blue"
+              onClick={() => {
+                if (ctx.currentPlayer === playerID) setPickColor(!pickColor)
+                moves.chooseColor('blue')
+              }}
+            />
+            <Box
+              w="10"
+              h="10"
+              display={pickColor ? 'block' : G.nextSpecialColor === 'green' ? 'block' : 'none'}
+              bgColor="green"
+              onClick={() => {
+                if (ctx.currentPlayer === playerID) setPickColor(!pickColor)
+                moves.chooseColor('green')
+              }}
+            />
+            <Box
+              w="10"
+              h="10"
+              display={pickColor ? 'block' : G.nextSpecialColor === 'red' ? 'block' : 'none'}
+              bgColor="red"
+              onClick={() => {
+                if (ctx.currentPlayer === playerID) setPickColor(!pickColor)
+                moves.chooseColor('red')
+              }}
+            />
+            <Box
+              w="10"
+              h="10"
+              display={pickColor ? 'block' : G.nextSpecialColor === 'yellow' ? 'block' : 'none'}
+              bgColor="yellow"
+              onClick={() => {
+                if (ctx.currentPlayer === playerID) setPickColor(!pickColor)
+                moves.chooseColor('yellow')
+              }}
+            />
+          </HStack>
+        </Box>
       </GridItem>
     </Grid>
   )

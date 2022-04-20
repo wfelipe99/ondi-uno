@@ -162,6 +162,24 @@ const drawCard: Move<OndiUnoState> = (G, ctx) => {
   G.secret.deck.total--
   G.secret.deck.availableCards = newAvailableCards
   G.players[ctx.currentPlayer].push(card)
+
+  const validCardsToDiscard = G.players[ctx.currentPlayer].filter((card) => {
+    const lastDiscardedCard = G.discardedCards.cards.at(-1)
+
+    if (card.type === 'pick_four' || card.type === 'color_changer') return true
+    if (card.type === lastDiscardedCard?.type || card.number === lastDiscardedCard?.number)
+      return true
+    if (card.type === G.nextSpecialColor) return true
+
+    return false
+  })
+
+  if (validCardsToDiscard.length !== 0) {
+    ctx.events?.setStage('discard')
+    return
+  }
+
+  ctx.events?.endTurn()
 }
 
 const discardCard: Move<OndiUnoState> = (G, ctx, card: UnoDeck) => {
@@ -171,7 +189,8 @@ const discardCard: Move<OndiUnoState> = (G, ctx, card: UnoDeck) => {
     card.type !== lastDiscardedCard?.type &&
     card.number !== lastDiscardedCard?.number &&
     card.type !== 'pick_four' &&
-    card.type !== 'color_changer'
+    card.type !== 'color_changer' &&
+    card.type !== G.nextSpecialColor
   )
     return INVALID_MOVE
 
@@ -199,12 +218,12 @@ const discardCard: Move<OndiUnoState> = (G, ctx, card: UnoDeck) => {
     return
   }
 
+  G.nextSpecialColor = null
   ctx.events?.endTurn()
 }
 
 const chooseColor: Move<OndiUnoState> = (G, ctx, color: SpecialColors) => {
   G.nextSpecialColor = color
-  // ctx.events?.endTurn()
 }
 
 export const OndiUno: Game<OndiUnoState> = {
@@ -293,6 +312,7 @@ export const OndiUno: Game<OndiUnoState> = {
         if (card.type === 'pick_four' || card.type === 'color_changer') return true
         if (card.type === lastDiscardedCard?.type || card.number === lastDiscardedCard?.number)
           return true
+        if (card.type === G.nextSpecialColor) return true
 
         return false
       })
