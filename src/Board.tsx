@@ -2,16 +2,16 @@
 // TODO: remove @ts-nocheck
 import type { BoardProps } from 'boardgame.io/react'
 import type { OndiUnoState, UnoDeck } from './Game'
-import { Grid, Image, VStack, HStack, GridItem, Box, Flex } from '@chakra-ui/react'
+import { Grid, Image, VStack, HStack, GridItem, Box } from '@chakra-ui/react'
 import MotionImage from './MotionImage'
 import { useRef, useState } from 'react'
 
-export default function OndiUnoBoard({ ctx, G, moves }: BoardProps<OndiUnoState>) {
-  const [cardsOfThisPlayer, setCardsOfThisPlayer] = useState(G.players[Object.keys(G.players)[0]])
+export default function OndiUnoBoard({ ctx, G, moves, playerID }: BoardProps<OndiUnoState>) {
+  //const [cardsOfThisPlayer, setCardsOfThisPlayer] = useState(G.players[Object.keys(G.players)[0]])
   const [discardThisCard, setDiscardThisCard] = useState('')
   const discardPlaceRef = useRef(null)
   const cardsRef = useRef([])
-  const [cardToAnimate, setCardToAnimate] = useState<UnoDeck[]>([])
+  //const [cardToAnimate, setCardToAnimate] = useState<UnoDeck[]>([])
 
   const cardAnimations = (cardId: number) => {
     const upLengthOnHover = 50
@@ -49,22 +49,21 @@ export default function OndiUnoBoard({ ctx, G, moves }: BoardProps<OndiUnoState>
     const card: UnoDeck = { id, type, number }
 
     if (G.discardedCards.cards.includes(card)) return false
-    if (ctx.currentPlayer !== Object.keys(G.players)[0]) return false
+    if (ctx.currentPlayer !== playerID) return false
 
-    e.target.style.zIndex = G.discardedCards.total
+    // e.target.style.zIndex = G.discardedCards.total
     setDiscardThisCard(`shallow-${e.target.id}`)
-    console.log(discardThisCard)
     moves.discardCard(card)
   }
 
   const renderCardsOfThisPlayer = () => {
     const elements = []
-    const thisPlayer = G.players[Object.keys(G.players)[0]]
+    const thisPlayer = G.players[playerID]
 
     thisPlayer.forEach((card, i) => {
       let ImagePath = ''
       if (card.number) ImagePath = `cards/${card.type}_${card.number}.png`
-      else ImagePath = `cards/wild_${card.type}.png`
+      else ImagePath = `cards/${card.type}.png`
 
       elements.push(
         <MotionImage
@@ -87,7 +86,7 @@ export default function OndiUnoBoard({ ctx, G, moves }: BoardProps<OndiUnoState>
     return elements
   }
 
-  const shallowRenderCardsOfThisPlayer = () => {
+  /*const shallowRenderCardsOfThisPlayer = () => {
     const elements = []
 
     cardsOfThisPlayer.map((card, i) => {
@@ -111,12 +110,30 @@ export default function OndiUnoBoard({ ctx, G, moves }: BoardProps<OndiUnoState>
     })
 
     return elements
-  }
+  }*/
 
   const renderCardsOfOthersPlayers = (seat: number) => {
     if (!G.publicPlayersInfo[seat]) return null
 
-    const totalOfCards = Object.values(G.publicPlayersInfo[seat])[1]
+    let orderOfPlayerIDToRenderInTable: number[] = []
+
+    if (ctx.numPlayers === 2) {
+      if (playerID === '0') orderOfPlayerIDToRenderInTable = [1]
+      if (playerID === '1') orderOfPlayerIDToRenderInTable = [0]
+    } else if (ctx.numPlayers === 3) {
+      if (playerID === '0') orderOfPlayerIDToRenderInTable = [1, 2]
+      if (playerID === '1') orderOfPlayerIDToRenderInTable = [2, 0]
+      if (playerID === '2') orderOfPlayerIDToRenderInTable = [0, 1]
+    } else {
+      if (playerID === '0') orderOfPlayerIDToRenderInTable = [1, 2, 3]
+      if (playerID === '1') orderOfPlayerIDToRenderInTable = [2, 3, 0]
+      if (playerID === '2') orderOfPlayerIDToRenderInTable = [3, 0, 1]
+      if (playerID === '3') orderOfPlayerIDToRenderInTable = [0, 1, 2]
+    }
+
+    const totalOfCards = G.publicPlayersInfo[orderOfPlayerIDToRenderInTable[seat - 1]].totalOfCards
+    console.log(`playerID: ${playerID}`)
+    console.log(G.publicPlayersInfo[orderOfPlayerIDToRenderInTable[seat - 1]].name)
 
     const transformRotateValue = (seat: number) => {
       if (seat === 1) return 90
@@ -124,24 +141,18 @@ export default function OndiUnoBoard({ ctx, G, moves }: BoardProps<OndiUnoState>
       else return -90
     }
 
-    const elements = []
-
-    elements.push(
-      [...Array(totalOfCards)].map((a, i) => (
-        <MotionImage
-          variants={cardAnimations(i)}
-          animate={discardThisCard === `card-${i + seat * 10}` && 'discard'}
-          key={i}
-          ref={(el) => (cardsRef.current[i + seat * 10] = el)}
-          id={`card-${i + seat * 10}`}
-          src={process.env.PUBLIC_URL + 'cards/card_back.png'}
-          transform={`rotate(${transformRotateValue(seat)}deg)`}
-          alt="BackCard"
-        />
-      ))
-    )
-
-    return elements
+    return [...Array(totalOfCards)].map((a, i) => (
+      <MotionImage
+        variants={cardAnimations(i)}
+        // animate={discardThisCard === `card-${i + seat * 10}` && 'discard'}
+        key={i}
+        ref={(el) => (cardsRef.current[i + seat * 10] = el)}
+        id={`card-${i + seat * 10}`}
+        src={process.env.PUBLIC_URL + 'cards/card_back.png'}
+        transform={`rotate(${transformRotateValue(seat)}deg)`}
+        alt="BackCard"
+      />
+    ))
   }
 
   return (
@@ -152,11 +163,9 @@ export default function OndiUnoBoard({ ctx, G, moves }: BoardProps<OndiUnoState>
       templateRows="repeat(5, 1fr)"
       bgColor="teal.400"
     >
-      {/* Seat 2 */}
-      <GridItem area="1 / 1 / 2 / 7">
-        <HStack justify="center" spacing="-24">
-          {renderCardsOfOthersPlayers(2)}
-        </HStack>
+      {/* Seat 0 - The player */}
+      <GridItem area="5 / 1 / 6 / 7" placeSelf="center">
+        <HStack spacing="-8">{renderCardsOfThisPlayer()}</HStack>
       </GridItem>
 
       {/* Seat 1 */}
@@ -164,9 +173,11 @@ export default function OndiUnoBoard({ ctx, G, moves }: BoardProps<OndiUnoState>
         <VStack spacing="-40">{renderCardsOfOthersPlayers(1)}</VStack>
       </GridItem>
 
-      {/* Seat 0 - The player */}
-      <GridItem area="5 / 1 / 6 / 7" placeSelf="center">
-        <HStack spacing="-8">{renderCardsOfThisPlayer()}</HStack>
+      {/* Seat 2 */}
+      <GridItem area="1 / 1 / 2 / 7">
+        <HStack justify="center" spacing="-24">
+          {renderCardsOfOthersPlayers(2)}
+        </HStack>
       </GridItem>
 
       {/* Seat 3 */}
@@ -181,7 +192,20 @@ export default function OndiUnoBoard({ ctx, G, moves }: BoardProps<OndiUnoState>
 
       {/* Discards */}
       <GridItem placeSelf="center" area="2 / 4 / 5 / 5">
-        <Box minW="130" minH="182" ref={discardPlaceRef}></Box>
+        <Box minW="130" minH="182" ref={discardPlaceRef}>
+          {G.discardedCards.cards.length !== 0 ? (
+            <Image
+              src={
+                process.env.PUBLIC_URL +
+                `cards/${G.discardedCards.cards[G.discardedCards.cards.length - 1].type}${
+                  G.discardedCards.cards[G.discardedCards.cards.length - 1].number
+                    ? `_${G.discardedCards.cards[G.discardedCards.cards.length - 1].number}`
+                    : ''
+                }.png`
+              }
+            />
+          ) : null}
+        </Box>
       </GridItem>
     </Grid>
   )

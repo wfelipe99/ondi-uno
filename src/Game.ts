@@ -171,6 +171,7 @@ const discardCard: Move<OndiUnoState> = (G, ctx, card: UnoDeck) => {
   G.players[ctx.currentPlayer] = newCardsOfThisPlayer
   G.discardedCards.total++
   G.discardedCards.cards.push(card)
+  G.publicPlayersInfo[ctx.currentPlayer].totalOfCards--
 }
 
 export const OndiUno: Game<OndiUnoState> = {
@@ -226,12 +227,12 @@ export const OndiUno: Game<OndiUnoState> = {
       let name = ''
       if (i === 0) name = 'Padrxn'
       else if (i === 1) name = 'DIABLE Jumb'
-      else if (i === 2) name = 'Fiat Uno'
-      else name = 'SENTA EM QUANTOS?'
+      else if (i === 2) name = 'SENTA EM QUANTOS?'
+      else name = 'Fiat Uno'
 
-      publicPlayersInfo[`${i}`] = {
+      publicPlayersInfo[i] = {
         name,
-        totalOfCards: privatePlayersInfo[`${i}`].length,
+        totalOfCards: privatePlayersInfo[i].length,
       }
     }
 
@@ -246,6 +247,10 @@ export const OndiUno: Game<OndiUnoState> = {
     }
   },
 
+  turn: {
+    minMoves: 1,
+    maxMoves: 1,
+  },
   minPlayers: 2,
   maxPlayers: 4,
   playerView: PlayerView.STRIP_SECRETS,
